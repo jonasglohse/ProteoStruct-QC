@@ -1,0 +1,45 @@
+{
+  "mzQC": {
+    "version": "1.0.0",
+    "creationDate": "2026-01-15T10:00:00",
+    "runQualities": [
+      {
+        "metadata": {
+          "label": "LFQ_Benchmark_run_01"
+        },
+        "qualityMetrics": [
+          {
+            "accession": "QC:4000059",
+            "name": "Number of MS1 spectra",
+            "value": 14532
+          },
+          {
+            "accession": "QC:4000060",
+            "name": "Number of MS2 spectra",
+            "value": 89241
+          },
+          {
+            "accession": "QC:4000053",
+            "name": "Number of identified MS2 spectra",
+            "value": 67843
+          },
+          {
+            "accession": "QC:4000023",
+            "name": "Mean precursor mass error (ppm)",
+            "value": 0.82
+          },
+          {
+            "accession": "QC:4000024",
+            "name": "Mass error standard deviation (ppm)",
+            "value": 1.21
+          },
+          {
+            "accession": "QC:0000000",
+            "name": "Peptide identification rate (%)",
+            "value": 76.0
+          }
+        ]
+      }
+    ]
+  }
+}
