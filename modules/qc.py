@@ -38,39 +38,65 @@ def get_scalar_metrics(metrics: list[dict]) -> list[dict]:
     return [m for m in metrics if isinstance(m["value"], (int, float))]
 
 
-def build_metrics_chart(metrics: list[dict]) -> go.Figure | None:
+def build_metrics_charts(metrics: list[dict]) -> list[go.Figure]:
     """
-    Bar chart of all scalar numeric metrics.
-    Prefers known scan-count accessions; falls back to all scalars (capped at 12).
+    Returns one or two bar charts depending on whether the scalar metrics
+    span incompatible scales.
+
+    If the ratio between the largest and smallest value exceeds 100 the
+    metrics are split into two groups:
+      - counts : large integers (scan / identification counts)
+      - ratios : small floats (mass error, rates, percentages)
+
+    Each group gets its own chart with an independent y-axis so that no
+    value is visually crushed to zero.
     """
     scalar = get_scalar_metrics(metrics)
     if not scalar:
-        return None
+        return []
 
-    # Known scan/identification count accessions — show these first if present
-    priority = {
-        "QC:4000059", "QC:4000060",  # MS1 / MS2 spectra
-        "QC:4000053", "QC:4000054",  # identified MS1 / MS2
-        "QC:4000023", "QC:4000024",  # mass accuracy mean / variance
-    }
-    prioritised = [m for m in scalar if m["accession"] in priority]
-    display = prioritised if prioritised else scalar[:12]
+    values = [abs(m["value"]) for m in scalar if m["value"] != 0]
+    if not values:
+        return []
 
-    fig = go.Figure(
-        go.Bar(
-            x=[m["name"] for m in display],
-            y=[m["value"] for m in display],
-            marker_color="#4C72B0",
-            text=[f"{m['value']:,.2f}" if isinstance(m["value"], float)
-                  else f"{m['value']:,}" for m in display],
-            textposition="outside",
+    scale_ratio = max(values) / min(values) if min(values) > 0 else float("inf")
+
+    if scale_ratio > 100:
+        counts = [m for m in scalar if abs(m["value"]) >= 1]
+        ratios = [m for m in scalar if abs(m["value"]) < 1 or isinstance(m["value"], float) and abs(m["value"]) < 100 and m not in counts]
+        # Re-split cleanly: anything >= 100 is a count, anything < 100 is a ratio
+        counts = [m for m in scalar if abs(m["value"]) >= 100]
+        ratios  = [m for m in scalar if abs(m["value"]) < 100]
+        groups = [(counts, "Scan & Identification Counts", "#4C72B0"),
+                  (ratios, "Rates & Mass Error Metrics",  "#DD8452")]
+    else:
+        groups = [(scalar, "QC Metrics", "#4C72B0")]
+
+    figs = []
+    for group, title, color in groups:
+        if not group:
+            continue
+        fig = go.Figure(
+            go.Bar(
+                x=[m["name"] for m in group],
+                y=[m["value"] for m in group],
+                marker_color=color,
+                text=[
+                    f"{m['value']:,.2f}" if isinstance(m["value"], float)
+                    else f"{m['value']:,}"
+                    for m in group
+                ],
+                textposition="outside",
+            )
         )
-    )
-    fig.update_layout(
-        xaxis_tickangle=-35,
-        yaxis_title="Value",
-        height=420,
-        margin=dict(t=20, b=140),
-        template="plotly_white",
-    )
-    return fig
+        fig.update_layout(
+            title=title,
+            xaxis_tickangle=-35,
+            yaxis_title="Value",
+            height=380,
+            margin=dict(t=50, b=140),
+            template="plotly_white",
+        )
+        figs.append(fig)
+
+    return figs
