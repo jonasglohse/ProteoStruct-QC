@@ -7,6 +7,32 @@ import requests
 _BASE = "https://www.ebi.ac.uk/pride/ws/archive/v2"
 
 
+def search_projects(keyword: str, page_size: int = 25) -> list[dict]:
+    """
+    Search PRIDE Archive by keyword.
+    Returns a list of lightweight project summaries.
+    """
+    r = requests.get(
+        f"{_BASE}/projects",
+        params={"keyword": keyword, "pageSize": page_size, "page": 0},
+        timeout=15,
+    )
+    r.raise_for_status()
+    projects = r.json() if r.text.strip() else []
+    results = []
+    for p in projects:
+        organisms = ", ".join(o.get("name", "") for o in p.get("organisms", [])) or "N/A"
+        instruments = ", ".join(i.get("name", "") for i in p.get("instruments", [])) or "N/A"
+        results.append({
+            "accession": p.get("accession", ""),
+            "title": p.get("title", "N/A"),
+            "organisms": organisms,
+            "instruments": instruments,
+            "submission_date": p.get("submissionDate", "N/A"),
+        })
+    return results
+
+
 def get_project_metadata(accession: str) -> dict:
     r = requests.get(f"{_BASE}/projects/{accession}", timeout=15)
     r.raise_for_status()

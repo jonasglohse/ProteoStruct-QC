@@ -25,6 +25,8 @@ for key, default in {
     "protein_sequence": None,
     "loaded_uniprot": None,
     "peptide_mappings": None,
+    "search_results": None,
+    "search_triggered_accession": None,
 }.items():
     if key not in st.session_state:
         st.session_state[key] = default
@@ -36,6 +38,34 @@ with st.sidebar:
 
     st.divider()
     st.subheader("PRIDE Dataset")
+
+    # Search
+    with st.expander("Search PRIDE", expanded=False):
+        search_query = st.text_input("Keywords", placeholder="e.g. DIA timsTOF human", key="search_query")
+        search_btn = st.button("Search", use_container_width=True)
+        if search_btn and search_query.strip():
+            with st.spinner("Searching…"):
+                try:
+                    st.session_state["search_results"] = pride.search_projects(search_query.strip())
+                except Exception as e:
+                    st.error(f"Search failed: {e}")
+                    st.session_state["search_results"] = []
+
+        if st.session_state["search_results"] is not None:
+            results = st.session_state["search_results"]
+            if not results:
+                st.caption("No results found.")
+            else:
+                st.caption(f"{len(results)} result(s):")
+                for r in results:
+                    st.markdown(
+                        f"**{r['accession']}** — {r['title'][:55]}{'…' if len(r['title']) > 55 else ''}  \n"
+                        f"_{r['organisms']} · {r['submission_date']}_"
+                    )
+                    if st.button("Load this dataset", key=f"sr_{r['accession']}", use_container_width=True):
+                        st.session_state["search_triggered_accession"] = r["accession"]
+                        st.rerun()
+
     accession_input = st.text_input(
         "Accession", placeholder="e.g. PXD070049", key="accession_input"
     )
@@ -54,7 +84,10 @@ with st.sidebar:
 
 # ── Resolve what to load this run ─────────────────────────────────────────────
 accession_to_load = None
-if demo_pride:
+if st.session_state["search_triggered_accession"]:
+    accession_to_load = st.session_state["search_triggered_accession"]
+    st.session_state["search_triggered_accession"] = None
+elif demo_pride:
     accession_to_load = DEMO_ACCESSION
 elif load_pride and accession_input.strip():
     accession_to_load = accession_input.strip().upper()
@@ -131,8 +164,7 @@ with tab_qc:
             metrics = st.session_state["mzqc_metrics"]
             st.subheader("QC Metrics")
 
-            fig = qc.build_metrics_chart(metrics)
-            if fig:
+            for fig in qc.build_metrics_charts(metrics):
                 st.plotly_chart(fig, use_container_width=True)
 
             with st.expander("All metrics (full table)"):
