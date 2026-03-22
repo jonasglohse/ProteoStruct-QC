@@ -49,13 +49,13 @@ No simple tool connects them. Researchers who want to quickly assess a public da
 | Layer | Library |
 |---|---|
 | UI framework | `streamlit` |
-| PRIDE data access | `pridepy` |
-| QC parsing | `pymzqc` |
-| Peptide utilities | `pyteomics` |
-| 3D visualization | `streamlit-molstar` |
+| PRIDE data access | direct PRIDE Archive REST API v2 via `requests` |
+| QC parsing | mzQC JSON parsed directly (PSI standard format) |
+| 3D visualization | `stmol` + `py3Dmol` |
 | Charts | `plotly` |
 | Data handling | `pandas` |
-| Structure fetch | AlphaFold DB REST API / RCSB PDB REST API |
+| Structure fetch | AlphaFold DB REST API + stable file URL fallback |
+| Sequence / protein search | UniProt REST API |
 
 Python 3.10+. All dependencies installable via `pip`.
 
@@ -96,7 +96,7 @@ Ambiguity scoring (red = maps to multiple proteins) is deferred to V2.
 
 ## Build Order
 
-1. **Validate `streamlit-molstar` first.** Get a structure loading and a hardcoded peptide sequence highlighting before writing any other code. If this doesn't work, the project's visual centrepiece fails — better to know immediately.
+1. **Validate `stmol` + `py3Dmol` first.** Get a structure loading and a hardcoded peptide sequence highlighting before writing any other code. If this doesn't work, the project's visual centrepiece fails — better to know immediately.
 2. **PRIDE metadata fetch.** Connect `pridepy`, display project title and file list. Check for `.mzQC` presence.
 3. **mzQC parsing and charts.** Parse metrics with `pymzqc`, render with Plotly. Build the fallback state.
 4. **Manual peptide input + highlighting.** Wire the text area to the `streamlit-molstar` sequence matching feature.

@@ -13,7 +13,8 @@ A Streamlit web app that connects public proteomics datasets to interactive 3D p
 - If no mzQC file is present (common for most public submissions), allows manual upload of a local `.mzQC` file or loading of a built-in demo
 
 **Structure Viewer tab**
-- Fetches the AlphaFold predicted structure for any protein by UniProt ID
+- Search for proteins by name or gene via the UniProt search in the sidebar, or enter a UniProt ID directly
+- Fetches the AlphaFold predicted structure for the selected protein
 - User pastes a list of peptide sequences (one per line)
 - Sequences are matched against the canonical UniProt protein sequence to resolve residue positions
 - Matched peptides are highlighted on the 3D structure: green for standard peptides, magenta for PTM-bearing peptides (flagged with a `*` suffix)
@@ -45,7 +46,8 @@ ProteoStruct-QC/
 ├── modules/
 │   ├── pride.py            # PRIDE Archive REST API v2 client
 │   ├── qc.py               # mzQC JSON parser + Plotly chart builders
-│   └── structure.py        # AlphaFold fetch, UniProt sequence, peptide mapper
+│   ├── structure.py        # AlphaFold fetch, UniProt sequence, peptide mapper
+│   └── uniprot.py          # UniProt protein search client
 │
 ├── data/
 │   ├── demo.mzqc           # Built-in demo mzQC file with realistic metrics
