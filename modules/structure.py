@@ -9,21 +9,34 @@ import requests
 def get_alphafold_pdb(uniprot_id: str) -> str:
     """
     Fetch the AlphaFold predicted structure as a PDB string.
-    Raises ValueError if no prediction exists for the given UniProt ID.
+    Tries the metadata API first; falls back to the direct stable file URL
+    if the API returns a server error. Raises ValueError if no prediction exists.
     """
     api_url = f"https://alphafold.ebi.ac.uk/api/prediction/{uniprot_id}"
     r = requests.get(api_url, timeout=15)
-    r.raise_for_status()
-    predictions = r.json()
 
-    if not predictions:
-        raise ValueError(f"No AlphaFold prediction found for {uniprot_id}.")
+    if r.status_code == 404:
+        raise ValueError(
+            f"No AlphaFold structure available for {uniprot_id}. "
+            "Try a different protein or enter the UniProt ID directly."
+        )
 
-    pdb_url = predictions[0].get("pdbUrl")
+    pdb_url = None
+    if r.status_code == 200:
+        predictions = r.json()
+        if predictions:
+            pdb_url = predictions[0].get("pdbUrl")
+
     if not pdb_url:
-        raise ValueError(f"AlphaFold returned no PDB URL for {uniprot_id}.")
+        # Fallback: construct the direct stable file URL (v4 model)
+        pdb_url = f"https://alphafold.ebi.ac.uk/files/AF-{uniprot_id}-F1-model_v4.pdb"
 
     r2 = requests.get(pdb_url, timeout=30)
+    if r2.status_code == 404:
+        raise ValueError(
+            f"No AlphaFold structure available for {uniprot_id}. "
+            "Try a different protein or enter the UniProt ID directly."
+        )
     r2.raise_for_status()
     return r2.text
 

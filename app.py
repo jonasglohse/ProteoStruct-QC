@@ -3,7 +3,7 @@ import py3Dmol
 import pandas as pd
 from stmol import showmol
 
-from modules import pride, qc, structure
+from modules import pride, qc, structure, uniprot
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -27,6 +27,8 @@ for key, default in {
     "peptide_mappings": None,
     "search_results": None,
     "search_triggered_accession": None,
+    "uniprot_search_results": None,
+    "uniprot_search_triggered": None,
 }.items():
     if key not in st.session_state:
         st.session_state[key] = default
@@ -75,6 +77,33 @@ with st.sidebar:
 
     st.divider()
     st.subheader("Protein Structure")
+
+    with st.expander("Search UniProt", expanded=False):
+        up_query = st.text_input("Protein / gene name", placeholder="e.g. ubiquitin human", key="up_query")
+        up_search_btn = st.button("Search", use_container_width=True, key="up_search_btn")
+        if up_search_btn and up_query.strip():
+            with st.spinner("Searching…"):
+                try:
+                    st.session_state["uniprot_search_results"] = uniprot.search_proteins(up_query.strip())
+                except Exception as e:
+                    st.error(f"Search failed: {e}")
+                    st.session_state["uniprot_search_results"] = []
+
+        if st.session_state["uniprot_search_results"] is not None:
+            up_results = st.session_state["uniprot_search_results"]
+            if not up_results:
+                st.caption("No results found.")
+            else:
+                st.caption(f"{len(up_results)} result(s):")
+                for p in up_results:
+                    st.markdown(
+                        f"**{p['accession']}** · {p['gene']} — {p['protein_name'][:50]}{'…' if len(p['protein_name']) > 50 else ''}  \n"
+                        f"_{p['organism']} · {p['length']} aa_"
+                    )
+                    if st.button("Load this protein", key=f"up_{p['accession']}", use_container_width=True):
+                        st.session_state["uniprot_search_triggered"] = p["accession"]
+                        st.rerun()
+
     uniprot_input = st.text_input(
         "UniProt ID", placeholder="e.g. P0CG48", key="uniprot_input"
     )
@@ -93,7 +122,10 @@ elif load_pride and accession_input.strip():
     accession_to_load = accession_input.strip().upper()
 
 uniprot_to_load = None
-if demo_struct:
+if st.session_state["uniprot_search_triggered"]:
+    uniprot_to_load = st.session_state["uniprot_search_triggered"]
+    st.session_state["uniprot_search_triggered"] = None
+elif demo_struct:
     uniprot_to_load = DEMO_UNIPROT
 elif load_struct and uniprot_input.strip():
     uniprot_to_load = uniprot_input.strip().upper()
@@ -124,7 +156,7 @@ if uniprot_to_load:
             st.session_state["pdb_content"] = structure.get_alphafold_pdb(uniprot_to_load)
             st.session_state["protein_sequence"] = structure.get_protein_sequence(uniprot_to_load)
             st.session_state["loaded_uniprot"] = uniprot_to_load
-            st.session_state["peptide_mappings"] = None
+            st.session_state["peptide_mappings"] = None  # clear stale mappings from previous protein
         except Exception as e:
             st.error(f"Could not load structure for {uniprot_to_load}: {e}")
 
