@@ -18,6 +18,7 @@ A Streamlit web app that connects public proteomics datasets to interactive 3D p
 - User pastes a list of peptide sequences (one per line)
 - Sequences are matched against the canonical UniProt protein sequence to resolve residue positions
 - Matched peptides are highlighted on the 3D structure: green for standard peptides, magenta for PTM-bearing peptides (flagged with a `*` suffix)
+- Toggle between plain grey and pLDDT confidence coloring (dark blue = very high, light blue = confident, yellow = low, orange = very low)
 - A mapping table shows which peptides were found and at which residues
 
 ---
