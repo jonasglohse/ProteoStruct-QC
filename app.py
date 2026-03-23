@@ -192,9 +192,26 @@ with tab_qc:
             f"{len(mzqc_files)} mzQC file(s) found"
         )
 
+        st.info(
+            f"This is a *{proj['organisms']}* dataset acquired on a **{proj['instruments']}**. "
+            "Head to the **Structure Viewer** tab to load a protein and map your identified peptides onto its 3D structure."
+        )
+
         if st.session_state["mzqc_metrics"]:
             metrics = st.session_state["mzqc_metrics"]
             st.subheader("QC Metrics")
+
+            runs = sorted({m["run"] for m in metrics})
+            if len(runs) > 1:
+                selected_run = st.selectbox(
+                    "Run",
+                    options=["All runs"] + runs,
+                    key="run_selector",
+                )
+                if selected_run != "All runs":
+                    metrics = [m for m in metrics if m["run"] == selected_run]
+            else:
+                selected_run = runs[0] if runs else None
 
             for fig in qc.build_metrics_charts(metrics):
                 st.plotly_chart(fig, use_container_width=True)
@@ -322,4 +339,12 @@ with tab_struct:
                         "End": m["end"] if m["found"] else "—",
                         "Found": "✓" if m["found"] else "✗",
                     })
-                st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+                mapping_df = pd.DataFrame(rows)
+                st.dataframe(mapping_df, use_container_width=True, hide_index=True)
+                st.download_button(
+                    "Download as CSV",
+                    data=mapping_df.to_csv(index=False),
+                    file_name=f"{st.session_state['loaded_uniprot']}_peptide_mappings.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                )
