@@ -263,9 +263,28 @@ with tab_struct:
         # ── 3D Viewer ──────────────────────────────────────────────────────────
         mappings = st.session_state["peptide_mappings"] or []
 
+        plddt_mode = st.toggle(
+            "pLDDT confidence coloring",
+            value=False,
+            key="plddt_toggle",
+            help="Color the structure by AlphaFold per-residue confidence (pLDDT). "
+                 "Dark blue = very high (≥90), light blue = confident (70–90), "
+                 "yellow = low (50–70), orange = very low (<50).",
+        )
+
         view = py3Dmol.view(width=900, height=540)
         view.addModel(st.session_state["pdb_content"], "pdb")
-        view.setStyle({}, {"cartoon": {"color": "lightgrey", "opacity": 0.8}})
+
+        if plddt_mode:
+            view.setStyle({}, {"cartoon": {"colorscheme": {
+                "prop": "b",
+                "gradient": "linear",
+                "colors": ["#FF7D45", "#FFDB13", "#65CBF3", "#0053D6"],
+                "min": 0,
+                "max": 100,
+            }}})
+        else:
+            view.setStyle({}, {"cartoon": {"color": "lightgrey", "opacity": 0.8}})
 
         for m in mappings:
             if m["found"]:
